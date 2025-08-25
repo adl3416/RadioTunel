@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "cocukapp-clean",
-    "slug": "cocukapp-clean",
+    "name": "Radyo Tünel",
+    "slug": "radyo-tunel",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "cocukappclean",
+    "scheme": "radyotunel",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {

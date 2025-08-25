@@ -1,5 +1,5 @@
 {
-  "name": "cocukapp-clean",
+  "name": "radyo-tunel",
   "main": "expo-router/entry",
   "version": "1.0.0",
   "scripts": {
@@ -14,22 +14,32 @@
   },
   "dependencies": {
     "@expo/vector-icons": "^14.1.0",
+    "@react-native-async-storage/async-storage": "^2.2.0",
+    "@react-native-community/netinfo": "^11.4.1",
+    "@react-native-community/slider": "^5.0.1",
     "@react-navigation/native": "^7.1.6",
     "expo": "~53.0.22",
+    "expo-av": "^15.1.7",
     "expo-font": "~13.3.2",
+    "expo-haptics": "^14.1.4",
     "expo-linking": "~7.1.7",
+    "expo-localization": "^16.1.6",
     "expo-router": "~5.1.5",
     "expo-splash-screen": "~0.30.10",
     "expo-status-bar": "~2.2.3",
     "expo-system-ui": "~5.0.11",
     "expo-web-browser": "~14.2.0",
+    "nativewind": "^4.1.23",
     "react": "19.0.0",
     "react-dom": "19.0.0",
     "react-native": "0.79.6",
+    "react-native-drawer-layout": "^4.1.12",
+    "react-native-gesture-handler": "^2.28.0",
     "react-native-reanimated": "~3.17.4",
     "react-native-safe-area-context": "5.4.0",
     "react-native-screens": "~4.11.1",
-    "react-native-web": "~0.20.0"
+    "react-native-web": "~0.20.0",
+    "tailwindcss": "^3.4.17"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

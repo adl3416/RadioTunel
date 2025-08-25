@@ -1,31 +1,70 @@
-import { StyleSheet } from 'react-native';
-
-import EditScreenInfo from '@/components/EditScreenInfo';
-import { Text, View } from '@/components/Themed';
+import React, { useState } from 'react';
+import { View } from 'react-native';
+import { AllStationsScreen } from '../../screens/AllStationsScreen';
+import { FavoritesScreen } from '../../screens/FavoritesScreen';
+import { SleepTimerScreen } from '../../screens/SleepTimerScreen';
+import { SettingsScreen } from '../../screens/SettingsScreen';
+import { DrawerMenu } from '../../components/DrawerMenu';
+import { MiniPlayer } from '../../components/MiniPlayer';
+import { LargePlayer } from '../../components/LargePlayer';
 
 export default function TabOneScreen() {
+  const [currentScreen, setCurrentScreen] = useState('allStations');
+  const [drawerVisible, setDrawerVisible] = useState(false);
+  const [playerVisible, setPlayerVisible] = useState(false);
+
+  const handleMenuPress = () => {
+    setDrawerVisible(true);
+  };
+
+  const handleNavigate = (screen: string) => {
+    setCurrentScreen(screen);
+  };
+
+  const handlePlayerExpand = () => {
+    setPlayerVisible(true);
+  };
+
+  const renderCurrentScreen = () => {
+    switch (currentScreen) {
+      case 'favorites':
+        return <FavoritesScreen 
+          onMenuPress={handleMenuPress} 
+          onGoBack={() => handleNavigate('allStations')}
+        />;
+      case 'sleepTimer':
+        return <SleepTimerScreen onMenuPress={handleMenuPress} />;
+      case 'settings':
+        return <SettingsScreen onMenuPress={handleMenuPress} />;
+      case 'allStations':
+      default:
+        return <AllStationsScreen 
+          onMenuPress={handleMenuPress} 
+          onNavigateToFavorites={() => handleNavigate('favorites')}
+        />;
+    }
+  };
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Tab One</Text>
-      <View style={styles.separator} lightColor="#eee" darkColor="rgba(255,255,255,0.1)" />
-      <EditScreenInfo path="app/(tabs)/index.tsx" />
+    <View className="flex-1">
+      {renderCurrentScreen()}
+      
+      {/* Mini Player */}
+      <MiniPlayer onExpand={handlePlayerExpand} />
+      
+      {/* Large Player Modal */}
+      <LargePlayer 
+        visible={playerVisible}
+        onClose={() => setPlayerVisible(false)}
+      />
+      
+      {/* Drawer Menu */}
+      <DrawerMenu
+        visible={drawerVisible}
+        onClose={() => setDrawerVisible(false)}
+        onNavigate={handleNavigate}
+        currentScreen={currentScreen}
+      />
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  separator: {
-    marginVertical: 30,
-    height: 1,
-    width: '80%',
-  },
-});
