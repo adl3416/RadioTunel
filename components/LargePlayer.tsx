@@ -10,6 +10,8 @@ import {
   ScrollView,
   useWindowDimensions,
   Platform,
+  Animated,
+  PanResponder,
 } from 'react-native';
 import { useAudio } from '../contexts/AudioContext';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -39,10 +41,59 @@ export const LargePlayer: React.FC<LargePlayerProps> = ({ visible, onClose }) =>
   const insets = useSafeAreaInsets();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const [showSleepTimer, setShowSleepTimer] = useState(false);
+  // Reserve extra space above system navigation/gesture area (approx. to avoid ~8mm overlap)
+  const BOTTOM_GUARD_PX = 24; // adjustable: increase if device buttons still overlap
+  const bottomGuard = (insets.bottom || 0) + BOTTOM_GUARD_PX;
   const [localVolume, setLocalVolume] = useState<number>(playbackState.volume ?? 0.8);
+  const [isDragging, setIsDragging] = useState(false);
   const [isMuted, setIsMuted] = useState<boolean>(false);
   const lastVolumeRef = useRef<number>(playbackState.volume ?? 0.8);
   const isLocked = useRef(false);
+  const translateY = useRef(new Animated.Value(0)).current;
+  const dragStarted = useRef(false);
+  const offsetRef = useRef(0);
+
+  // PanResponder to allow dragging the player down to collapse
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (_, gesture) => Math.abs(gesture.dy) > 4,
+      onPanResponderGrant: () => {
+        dragStarted.current = true;
+        setIsDragging(true);
+        translateY.setOffset(offsetRef.current || 0);
+        translateY.setValue(0);
+      },
+      onPanResponderMove: (_, gesture) => {
+        // Only allow downward drag
+        const dy = Math.max(0, gesture.dy);
+        translateY.setValue(dy);
+      },
+      onPanResponderRelease: (_, gesture) => {
+        translateY.flattenOffset();
+        offsetRef.current = 0;
+        dragStarted.current = false;
+        setIsDragging(false);
+        const shouldClose = gesture.dy > Math.min(160, windowHeight * 0.18) || gesture.vy > 1.0;
+        if (shouldClose) {
+          // animate down and then close
+          Animated.timing(translateY, { toValue: windowHeight, duration: 200, useNativeDriver: true }).start(() => {
+            // reset and close
+            translateY.setValue(0);
+            onClose();
+          });
+        } else {
+          Animated.spring(translateY, { toValue: 0, useNativeDriver: true, bounciness: 8 }).start();
+        }
+      },
+      onPanResponderTerminate: () => {
+        translateY.flattenOffset();
+        dragStarted.current = false;
+        setIsDragging(false);
+        Animated.spring(translateY, { toValue: 0, useNativeDriver: true, bounciness: 8 }).start();
+      },
+    })
+  ).current;
 
   // keep a small local volume state to ensure slider and instant buttons feel snappy
   useEffect(() => {
@@ -145,8 +196,8 @@ export const LargePlayer: React.FC<LargePlayerProps> = ({ visible, onClose }) =>
     >
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
       
-      {/* Main Player Content - Modern Beyaz Tasarım */}
-      <View className="flex-1 bg-white">
+  {/* Main Player Content - Modern Beyaz Tasarım */}
+  <Animated.View style={{ flex: 1, backgroundColor: '#fff', transform: [{ translateY }] }} {...panResponder.panHandlers}>
         {/* Top Header - Minimal Gri */}
         <View className="bg-gray-200 px-4 pt-12 pb-4">
           <View className="flex-row items-center justify-between">
@@ -167,7 +218,7 @@ export const LargePlayer: React.FC<LargePlayerProps> = ({ visible, onClose }) =>
         </View>
 
   {/* Content wrapper - scrollable so very small screens can still access controls */}
-  <ScrollView contentContainerStyle={{ flexGrow: 1, paddingBottom: 28 + (insets.bottom || 0) }}>
+  <ScrollView scrollEnabled={!isDragging} contentContainerStyle={{ flexGrow: 1, paddingBottom: 28 + bottomGuard }}>
         {playbackState.currentStation ? (
           <>
             {/* Radio Station Info - Header altında */}
@@ -339,10 +390,10 @@ export const LargePlayer: React.FC<LargePlayerProps> = ({ visible, onClose }) =>
           </View>
         )}
         </ScrollView>
-      </View>
+  </Animated.View>
 
       {/* Bottom Icon Bar - fixed controls (shifted above safe area) */}
-      <View className="absolute left-0 right-0 px-6" style={{ bottom: (insets.bottom || 0) + 12 }}>
+  <View className="absolute left-0 right-0 px-6" style={{ bottom: bottomGuard - 8 }}>
         <View className="bg-white rounded-2xl shadow-lg px-4 py-3 flex-row items-center justify-between">
           <View className="flex-row items-center space-x-3">
             <TouchableOpacity 
