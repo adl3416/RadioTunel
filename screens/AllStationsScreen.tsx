@@ -8,6 +8,7 @@ import {
   Linking 
 } from 'react-native';
 import { RadioList } from '../components/RadioList';
+import { AlphabeticFilter } from '../components/AlphabeticFilter';
 import { RadioStation } from '../types/radio';
 import { RadioBrowserService } from '../services/radioBrowserService';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -25,6 +26,8 @@ export const AllStationsScreen: React.FC<AllStationsScreenProps> = ({ onMenuPres
   const [stations, setStations] = useState<RadioStation[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [azSortActive, setAzSortActive] = useState(false);
+  const [originalStations, setOriginalStations] = useState<RadioStation[]>([]);
 
   useEffect(() => {
     loadStations();
@@ -59,53 +62,93 @@ export const AllStationsScreen: React.FC<AllStationsScreenProps> = ({ onMenuPres
 
       // Merge cihan matches on top, dedupe by stationuuid
       const combined = [...filteredCihan, ...sortedStations];
-      // Also ensure Herkul Radyo is included (manual entry) using provided stream URL
-      const herkulStation = {
-        changeuuid: '',
-        stationuuid: 'herkul-radyo-local',
-        name: 'Herkul Radyo',
-        url: 'https://www.radioking.com/play/herkulradyo',
-        url_resolved: 'https://www.radioking.com/play/herkulradyo',
-        homepage: 'https://www.radioking.com/',
-        favicon: '',
-        tags: 'Türkçe, müzik',
-        country: 'Turkey',
-        countrycode: 'TR',
-        iso_3166_2: '',
-        state: '',
-        language: 'turkish',
-        languagecodes: 'tr',
-        votes: 0,
-        lastchangetime: '',
-        lastchangetime_iso8601: '',
-        codec: 'MP3',
-        bitrate: 128,
-        hls: 0,
-        lastcheckok: 1,
-        lastchecktime: '',
-        lastchecktime_iso8601: '',
-        lastcheckoktime: '',
-        lastcheckoktime_iso8601: '',
-        lastlocalchecktime: '',
-        lastlocalchecktime_iso8601: '',
-        clicktimestamp: '',
-        clicktimestamp_iso8601: '',
-        clickcount: 0,
-        clicktrend: 0,
-        ssl_error: 0,
-        geo_lat: 0,
-        geo_long: 0,
-        has_extended_info: false,
-      } as RadioStation;
-      // put herkul first
-      combined.unshift(herkulStation);
+      // Manuel eklenen istasyonlar
+      const manualStations: RadioStation[] = [
+        {
+          changeuuid: '',
+          stationuuid: 'herkul-radyo-local',
+          name: 'Herkul Radyo',
+          url: 'https://www.radioking.com/play/herkulradyo',
+          url_resolved: 'https://www.radioking.com/play/herkulradyo',
+          homepage: 'https://www.radioking.com/',
+          favicon: '',
+          tags: 'Türkçe, müzik',
+          country: 'Turkey',
+          countrycode: 'TR',
+          iso_3166_2: '',
+          state: '',
+          language: 'turkish',
+          languagecodes: 'tr',
+          votes: 0,
+          lastchangetime: '',
+          lastchangetime_iso8601: '',
+          codec: 'MP3',
+          bitrate: 128,
+          hls: 0,
+          lastcheckok: 1,
+          lastchecktime: '',
+          lastchecktime_iso8601: '',
+          lastcheckoktime: '',
+          lastcheckoktime_iso8601: '',
+          lastlocalchecktime: '',
+          lastlocalchecktime_iso8601: '',
+          clicktimestamp: '',
+          clicktimestamp_iso8601: '',
+          clickcount: 0,
+          clicktrend: 0,
+          ssl_error: 0,
+          geo_lat: 0,
+          geo_long: 0,
+          has_extended_info: false,
+        },
+        {
+          changeuuid: '7748d750-3804-40d4-a615-f21cd06fbaf8',
+          stationuuid: '7ec738e7-9e9f-4eb5-be74-ec08f2ecb7c2',
+          name: 'A Haber',
+          url: 'https://trkvz-radyolar.ercdn.net/ahaberradyo/playlist.m3u8',
+          url_resolved: 'https://trkvz-radyolar.ercdn.net/ahaberradyo/playlist.m3u8',
+          homepage: 'https://www.ahaber.com.tr/',
+          favicon: '',
+          tags: 'Haber, Türkçe',
+          country: 'Turkey',
+          countrycode: 'TR',
+          iso_3166_2: '',
+          state: '',
+          language: 'turkish',
+          languagecodes: 'tr',
+          votes: 0,
+          lastchangetime: '',
+          lastchangetime_iso8601: '',
+          codec: 'AAC',
+          bitrate: 128,
+          hls: 1,
+          lastcheckok: 1,
+          lastchecktime: '',
+          lastchecktime_iso8601: '',
+          lastcheckoktime: '',
+          lastcheckoktime_iso8601: '',
+          lastlocalchecktime: '',
+          lastlocalchecktime_iso8601: '',
+          clicktimestamp: '',
+          clicktimestamp_iso8601: '',
+          clickcount: 0,
+          clicktrend: 0,
+          ssl_error: 0,
+          geo_lat: 0,
+          geo_long: 0,
+          has_extended_info: false,
+        },
+      ];
+      // Manuel istasyonları en üste ekle
+      manualStations.reverse().forEach(station => combined.unshift(station));
       const uniqueMap = new Map<string, RadioStation>();
       for (const s of combined) {
         if (!uniqueMap.has(s.stationuuid)) uniqueMap.set(s.stationuuid, s);
       }
       const mergedStations = Array.from(uniqueMap.values());
 
-      setStations(mergedStations);
+  setStations(mergedStations);
+  setOriginalStations(mergedStations);
     } catch (error) {
       console.error('Error loading stations:', error);
       Alert.alert(
@@ -138,12 +181,34 @@ export const AllStationsScreen: React.FC<AllStationsScreenProps> = ({ onMenuPres
               <Ionicons name="menu" size={24} color="#374151" />
             </TouchableOpacity>
           </View>
-          
+
+          {/* Alfabetik filtre sağ üstte */}
+          <View className="absolute top-8 right-4 flex-row items-center">
+            <TouchableOpacity
+              onPress={() => {
+                setAzSortActive(prev => {
+                  if (!prev) {
+                    setStations([...stations].sort((a, b) => (a.name || '').localeCompare(b.name || '')));
+                  } else {
+                    setStations([...originalStations]);
+                  }
+                  return !prev;
+                });
+              }}
+              style={{ padding: 8, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 16 }}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16, marginRight: 4 }}>A-Z</Text>
+                <Ionicons name={azSortActive ? 'arrow-down' : 'arrow-up'} size={18} color="#fff" />
+              </View>
+            </TouchableOpacity>
+          </View>
+
           {/* Radyo Tüneli başlığı */}
           <Text className="text-3xl font-bold text-white text-center mb-4">
             Radyo Tüneli
           </Text>
-          
+
           {/* Favoriler butonu sağ altta */}
           <View className="absolute bottom-4 right-4 flex-row items-center">
             <TouchableOpacity 

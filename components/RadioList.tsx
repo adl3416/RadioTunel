@@ -1,14 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { 
-  View, 
-  Text, 
-  TextInput, 
-  FlatList, 
-  TouchableOpacity, 
-  RefreshControl,
-  ActivityIndicator,
-  Alert
-} from 'react-native';
+import { View, Text, TextInput, FlatList, TouchableOpacity, RefreshControl, ActivityIndicator, Alert, Image } from 'react-native';
 import { RadioStation } from '../types/radio';
 import { RadioStationCard } from './RadioStationCard';
 import { useAudio } from '../contexts/AudioContext';
@@ -32,41 +23,23 @@ export const RadioList: React.FC<RadioListProps> = ({
   searchEnabled = true,
   emptyMessage,
 }) => {
-  const { playStation } = useAudio();
+  const { playStation, recentlyPlayed } = useAudio();
   const { t } = useLanguage();
-  const { recentlyPlayed } = useAudio();
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredStations, setFilteredStations] = useState<RadioStation[]>(stations);
   const playTimeout = useRef<any>(null);
   const lastPlayStation = useRef<string>('');
 
   const handleStationPress = useCallback(async (station: RadioStation) => {
-    console.log('RadioList: Station press initiated', station.name);
-    
-    // Eğer aynı istasyon çok hızlı tekrar seçilirse engelle
-    if (lastPlayStation.current === station.stationuuid) {
-      console.log('RadioList: Duplicate station press ignored', station.name);
-      return;
-    }
-    
-    // Önceki timeout'u temizle
-    if (playTimeout.current) {
-      clearTimeout(playTimeout.current);
-    }
-    
+    if (lastPlayStation.current === station.stationuuid) return;
+    if (playTimeout.current) clearTimeout(playTimeout.current);
     lastPlayStation.current = station.stationuuid;
-    
     try {
-      console.log('RadioList: Playing station', station.name);
       await playStation(station);
     } catch (error) {
-      console.error('RadioList: Error playing station:', error);
       Alert.alert(t.error, t.playbackError);
     } finally {
-      // 1 saniye sonra aynı istasyonu tekrar seçme yasağını kaldır
-      playTimeout.current = setTimeout(() => {
-        lastPlayStation.current = '';
-      }, 1000);
+      playTimeout.current = setTimeout(() => { lastPlayStation.current = ''; }, 1000);
     }
   }, [playStation, t]);
 
@@ -99,15 +72,10 @@ export const RadioList: React.FC<RadioListProps> = ({
     setFilteredStations(filtered);
   }, [searchQuery, stations]);
 
-  const handleSearch = (query: string) => {
-    setSearchQuery(query);
-  };
+  const handleSearch = (query: string) => setSearchQuery(query);
 
   const renderStation = ({ item }: { item: RadioStation }) => (
-    <RadioStationCard 
-      station={item} 
-      onPress={handleStationPress}
-    />
+    <RadioStationCard station={item} onPress={handleStationPress} />
   );
 
   const renderEmpty = () => (
@@ -135,7 +103,6 @@ export const RadioList: React.FC<RadioListProps> = ({
 
   const renderFooter = () => {
     if (!loading || stations.length === 0) return null;
-    
     return (
       <View className="py-4">
         <ActivityIndicator size="small" color="#F97316" />
@@ -147,11 +114,11 @@ export const RadioList: React.FC<RadioListProps> = ({
     <View className="flex-1 bg-gray-50 dark:bg-gray-900">
       {/* Sabit arama çubuğu */}
       {searchEnabled && (
-        <View className="px-4 py-3" style={{ zIndex: 10, backgroundColor: '#f5f5f5' }}>
-          <View className="flex-row items-center bg-gray-100 dark:bg-gray-700 rounded-xl px-4 py-3">
-            <Ionicons name="search" size={20} color="#6B7280" />
+        <View className="px-4 py-1" style={{ zIndex: 10, backgroundColor: '#f5f5f5', minHeight: 24 }}>
+          <View className="flex-row items-center bg-gray-100 dark:bg-gray-700 rounded-xl px-3 py-1" style={{ minHeight: 24 }}>
+            <Ionicons name="search" size={16} color="#6B7280" />
             <TextInput
-              className="flex-1 ml-3 text-gray-900 dark:text-white"
+              className="flex-1 ml-1 text-gray-900 dark:text-white"
               placeholder={t.search}
               placeholderTextColor="#6B7280"
               value={searchQuery}
@@ -161,16 +128,47 @@ export const RadioList: React.FC<RadioListProps> = ({
               blurOnSubmit={false}
               returnKeyType="search"
               onBlur={e => {
-                // Odak kaybolursa tekrar odakla
                 e.target?.focus?.();
               }}
+              style={{ fontSize: 13, minHeight: 20 }}
             />
             {searchQuery.length > 0 && (
               <TouchableOpacity onPress={() => handleSearch('')}>
-                <Ionicons name="close-circle" size={20} color="#6B7280" />
+                <Ionicons name="close-circle" size={16} color="#6B7280" />
               </TouchableOpacity>
             )}
           </View>
+        </View>
+      )}
+      {/* Son Dinlenenler - Arama çubuğunun hemen altında */}
+      {recentlyPlayed && recentlyPlayed.length > 0 && (
+        <View className="px-4 py-3 flex-row items-center" style={{ backgroundColor: '#e5e7eb', borderRadius: 16, marginHorizontal: 8, marginTop: 2, marginBottom: 4, height: 100 }}>
+          <Text className="text-gray-700 font-semibold" style={{ fontSize: 14, marginRight: 16, minWidth: 100 }}>Son Dinlenenler</Text>
+          <FlatList
+            data={recentlyPlayed.slice(0, 10)}
+            horizontal={true}
+            keyExtractor={item => item.stationuuid}
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ flexDirection: 'row', alignItems: 'flex-start', paddingTop: 0 }}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                style={{ alignItems: 'flex-start', marginRight: 12, justifyContent: 'flex-start' }}
+                onPress={() => handleStationPress(item)}
+                activeOpacity={0.8}
+              >
+                <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center', marginBottom: 2, shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 2 }}>
+                  {item.favicon ? (
+                    <Image source={{ uri: item.favicon }} style={{ width: 34, height: 34, borderRadius: 17 }} />
+                  ) : (
+                    <View style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: '#f3f4f6', justifyContent: 'center', alignItems: 'center' }}>
+                      <Ionicons name="radio" size={18} color="#9ca3af" />
+                    </View>
+                  )}
+                </View>
+                <Text style={{ fontSize: 11, color: '#374151', textAlign: 'center', maxWidth: 48, marginTop: 2 }} numberOfLines={2}>{item.name}</Text>
+              </TouchableOpacity>
+            )}
+          />
         </View>
       )}
       {/* FlatList altında */}
@@ -181,32 +179,15 @@ export const RadioList: React.FC<RadioListProps> = ({
         ListEmptyComponent={renderEmpty}
         ListFooterComponent={renderFooter}
         contentContainerStyle={
-          filteredStations.length === 0 ? { flex: 1 } : { paddingBottom: 100 }
+          loading && filteredStations.length === 0
+            ? { flex: 1, justifyContent: 'center' }
+            : undefined
         }
-        keyboardShouldPersistTaps="always"
         refreshControl={
-          onRefresh ? (
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              colors={["#F97316"]}
-              tintColor="#F97316"
-            />
-          ) : undefined
+          onRefresh
+            ? <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+            : undefined
         }
-        showsVerticalScrollIndicator={false}
-        initialNumToRender={8}
-        maxToRenderPerBatch={8}
-        windowSize={5}
-        removeClippedSubviews={true}
-        updateCellsBatchingPeriod={50}
-        disableIntervalMomentum={true}
-        getItemLayout={(_, index) => ({
-          length: 88,
-          offset: 88 * index,
-          index,
-        })}
-        scrollEventThrottle={16}
       />
     </View>
   );

@@ -103,8 +103,8 @@ export const MiniPlayer: React.FC<MiniPlayerProps> = ({ onExpand }) => {
       style={{
         transform: [{ translateY }],
         opacity,
-        height: 80,
-        minHeight: 80,
+        height: 120,
+        minHeight: 120,
       }}
       {...panResponder.panHandlers}
     >
@@ -116,13 +116,15 @@ export const MiniPlayer: React.FC<MiniPlayerProps> = ({ onExpand }) => {
           activeOpacity={0.8}
         >
           {playbackState.currentStation.favicon ? (
-            <Image 
-              source={{ uri: playbackState.currentStation.favicon }} 
-              className="w-12 h-12 rounded-lg"
-              defaultSource={require('../assets/images/icon.png')}
-            />
+            <View style={{ width: 48, height: 48, borderRadius: 24, overflow: 'hidden', backgroundColor: 'white', alignItems: 'center', justifyContent: 'center' }}>
+              <Image 
+                source={{ uri: playbackState.currentStation.favicon }} 
+                style={{ width: 44, height: 44, borderRadius: 22 }}
+                defaultSource={require('../assets/images/icon.png')}
+              />
+            </View>
           ) : (
-            <View className="w-12 h-12 bg-white bg-opacity-20 rounded-lg items-center justify-center">
+            <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' }}>
               <Ionicons name="radio" size={24} color="white" />
             </View>
           )}

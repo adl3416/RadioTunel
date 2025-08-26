@@ -101,7 +101,7 @@ export const RadioStationCard: React.FC<RadioStationCardProps> = ({ station, onP
 
   return (
     <TouchableOpacity 
-      className={`rounded-xl ${small ? 'p-2 mb-2' : 'p-4 mb-3'} shadow-sm border ${
+      className={`rounded-xl ${small ? 'p-1 mb-1' : 'p-2 mb-2'} shadow-sm border ${
         isCurrentStation 
           ? 'bg-orange-500 dark:bg-orange-600 border-orange-400 dark:border-orange-500' 
           : 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700'
@@ -113,14 +113,15 @@ export const RadioStationCard: React.FC<RadioStationCardProps> = ({ station, onP
       delayPressOut={0}
       delayLongPress={1000}
       hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+      style={{ minHeight: small ? 48 : 64, height: small ? 56 : 72 }}
     >
       <View className="flex-row items-center">
         {/* Station Logo */}
         <View style={{
-          width: small ? 56 : 96,
-          height: small ? 56 : 96,
-          marginRight: small ? 12 : 16,
-          borderRadius: 24,
+          width: small ? 40 : 64,
+          height: small ? 40 : 64,
+          marginRight: small ? 8 : 12,
+          borderRadius: (small ? 40 : 64) / 2,
           overflow: 'hidden',
           backgroundColor: '#f5f5f5', // daha açık gri
           alignItems: 'center',
@@ -141,7 +142,7 @@ export const RadioStationCard: React.FC<RadioStationCardProps> = ({ station, onP
               resizeMode="contain"
             />
           ) : (
-            <Ionicons name="radio" size={small ? 32 : 48} color="#6B7280" />
+            <Ionicons name="radio" size={small ? 20 : 32} color="#6B7280" />
           )}
         </View>
 
