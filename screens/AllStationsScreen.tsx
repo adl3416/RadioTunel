@@ -5,7 +5,8 @@ import {
   SafeAreaView, 
   TouchableOpacity, 
   Alert,
-  Linking 
+  Linking,
+  TextInput
 } from 'react-native';
 import { RadioList } from '../components/RadioList';
 import { AlphabeticFilter } from '../components/AlphabeticFilter';
@@ -28,6 +29,7 @@ export const AllStationsScreen: React.FC<AllStationsScreenProps> = ({ onMenuPres
   const [refreshing, setRefreshing] = useState(false);
   const [azSortActive, setAzSortActive] = useState(false);
   const [originalStations, setOriginalStations] = useState<RadioStation[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     loadStations();
@@ -54,7 +56,15 @@ export const AllStationsScreen: React.FC<AllStationsScreenProps> = ({ onMenuPres
           station.name.trim().length > 0 &&
           !(station.name.toLowerCase().includes('trt radyo haber') && station.bitrate === 140)
         )
-        .sort((a, b) => (b.clickcount || 0) - (a.clickcount || 0));
+        .sort((a, b) => (b.clickcount || 0) - (a.clickcount || 0))
+        // Alem FM için sadece bir tanesini tut
+        .filter((station, idx, arr) => {
+          if (station.name.trim().toLowerCase() === 'alem fm') {
+            // Sadece ilk Alem FM kalsın
+            return arr.findIndex(s => s.name.trim().toLowerCase() === 'alem fm') === idx;
+          }
+          return true;
+        });
       // Filter and sanitize cihan matches similarly
       const filteredCihan = cihanMatches
         .filter(station => station.lastcheckok === 1 && station.url_resolved && station.name && station.name.trim().length > 0)
@@ -205,9 +215,32 @@ export const AllStationsScreen: React.FC<AllStationsScreenProps> = ({ onMenuPres
           </View>
 
           {/* Radyo Tüneli başlığı */}
-          <Text className="text-3xl font-bold text-white text-center mb-4">
+          <Text className="text-3xl font-bold text-white text-center mb-2">
             Radyo Tüneli
           </Text>
+          {/* Search bar header altına taşındı */}
+          <View className="w-full items-center mb-2">
+            <View className="flex-row items-center bg-gray-100 dark:bg-gray-700 rounded-xl px-2 py-1" style={{ minHeight: 20, maxWidth: 220 }}>
+              <Ionicons name="search" size={14} color="#6B7280" />
+              <TextInput
+                className="flex-1 ml-1 text-gray-900 dark:text-white"
+                placeholder={t.search}
+                placeholderTextColor="#6B7280"
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                autoCapitalize="none"
+                autoCorrect={false}
+                blurOnSubmit={false}
+                returnKeyType="search"
+                style={{ fontSize: 12, minHeight: 18, maxWidth: 180 }}
+              />
+              {searchQuery && searchQuery.length > 0 && (
+                <TouchableOpacity onPress={() => setSearchQuery('')}>
+                  <Ionicons name="close-circle" size={14} color="#6B7280" />
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
 
           {/* Favoriler butonu sağ altta */}
           <View className="absolute bottom-4 right-4 flex-row items-center">
@@ -235,11 +268,31 @@ export const AllStationsScreen: React.FC<AllStationsScreenProps> = ({ onMenuPres
 
       {/* Content */}
       <RadioList
-        stations={stations}
+        stations={searchQuery.trim() ? stations.filter(station => {
+          const normQuery = searchQuery
+            .toLowerCase()
+            .replace(/ı/g, 'i')
+            .replace(/ü/g, 'u')
+            .replace(/ö/g, 'o')
+            .replace(/ş/g, 's')
+            .replace(/ç/g, 'c')
+            .replace(/ğ/g, 'g');
+          const fields = [
+            station.name,
+            station.tags,
+            station.country,
+            station.codec,
+            station.bitrate?.toString() || '',
+            station.homepage || '',
+            station.state || '',
+            station.language || '',
+          ];
+          return fields.some(field => (field || '').toLowerCase().includes(normQuery));
+        }) : stations}
         loading={loading}
         onRefresh={handleRefresh}
         refreshing={refreshing}
-        searchEnabled={true}
+        searchEnabled={false}
         emptyMessage={t.noResults}
       />
     </SafeAreaView>

@@ -111,35 +111,7 @@ export const RadioList: React.FC<RadioListProps> = ({
   };
 
   return (
-    <View className="flex-1 bg-gray-50 dark:bg-gray-900">
-      {/* Sabit arama çubuğu */}
-      {searchEnabled && (
-        <View className="px-4 py-1" style={{ zIndex: 10, backgroundColor: '#f5f5f5', minHeight: 24 }}>
-          <View className="flex-row items-center bg-gray-100 dark:bg-gray-700 rounded-xl px-3 py-1" style={{ minHeight: 24 }}>
-            <Ionicons name="search" size={16} color="#6B7280" />
-            <TextInput
-              className="flex-1 ml-1 text-gray-900 dark:text-white"
-              placeholder={t.search}
-              placeholderTextColor="#6B7280"
-              value={searchQuery}
-              onChangeText={handleSearch}
-              autoCapitalize="none"
-              autoCorrect={false}
-              blurOnSubmit={false}
-              returnKeyType="search"
-              onBlur={e => {
-                e.target?.focus?.();
-              }}
-              style={{ fontSize: 13, minHeight: 20 }}
-            />
-            {searchQuery.length > 0 && (
-              <TouchableOpacity onPress={() => handleSearch('')}>
-                <Ionicons name="close-circle" size={16} color="#6B7280" />
-              </TouchableOpacity>
-            )}
-          </View>
-        </View>
-      )}
+  <View className="flex-1 bg-gray-50 dark:bg-gray-900">
       {/* Son Dinlenenler - Arama çubuğunun hemen altında */}
       {recentlyPlayed && recentlyPlayed.length > 0 && (
         <View className="px-4 py-3 flex-row items-center" style={{ backgroundColor: '#e5e7eb', borderRadius: 16, marginHorizontal: 8, marginTop: 2, marginBottom: 4, height: 100 }}>
