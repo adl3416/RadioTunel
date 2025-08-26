@@ -23,18 +23,12 @@ export const AllStationsScreen: React.FC<AllStationsScreenProps> = ({ onMenuPres
   const { t } = useLanguage();
   const { favorites, recentlyPlayed } = useAudio();
   const [stations, setStations] = useState<RadioStation[]>([]);
-  const [filteredStations, setFilteredStations] = useState<RadioStation[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     loadStations();
   }, []);
-
-  useEffect(() => {
-    filterStations();
-  }, [searchQuery, stations]);
 
   const loadStations = async () => {
     try {
@@ -54,7 +48,8 @@ export const AllStationsScreen: React.FC<AllStationsScreenProps> = ({ onMenuPres
         .filter(station => 
           station.bitrate >= 64 && // Minimum quality
           station.url_resolved && 
-          station.name.trim().length > 0
+          station.name.trim().length > 0 &&
+          !(station.name.toLowerCase().includes('trt radyo haber') && station.bitrate === 140)
         )
         .sort((a, b) => (b.clickcount || 0) - (a.clickcount || 0));
       // Filter and sanitize cihan matches similarly
@@ -132,25 +127,6 @@ export const AllStationsScreen: React.FC<AllStationsScreenProps> = ({ onMenuPres
     setRefreshing(false);
   };
 
-  const filterStations = () => {
-    if (!searchQuery.trim()) {
-      setFilteredStations(stations);
-      return;
-    }
-
-    const filtered = stations.filter(station =>
-      station.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      station.tags.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      station.country.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-    
-    setFilteredStations(filtered);
-  };
-
-  const handleSearch = (query: string) => {
-    setSearchQuery(query);
-  };
-
   return (
     <SafeAreaView className="flex-1 bg-gray-50 dark:bg-gray-900">
   {/* Header - Ekranın 1/4'ü kadar yükseklik */}
@@ -188,20 +164,18 @@ export const AllStationsScreen: React.FC<AllStationsScreenProps> = ({ onMenuPres
       {/* Stats */}
       <View className="px-4 py-2 bg-orange-50 dark:bg-orange-900/20">
         <Text className="text-orange-700 dark:text-orange-300 text-sm text-center">
-          {filteredStations.length} {searchQuery ? 'results' : 'Turkish radio stations'}
-          {searchQuery && ` for "${searchQuery}"`}
+          {stations.length} Turkish radio stations
         </Text>
       </View>
 
       {/* Content */}
       <RadioList
-        stations={filteredStations}
+        stations={stations}
         loading={loading}
         onRefresh={handleRefresh}
         refreshing={refreshing}
         searchEnabled={true}
-        onSearch={handleSearch}
-        emptyMessage={searchQuery ? t.noResults : 'No stations available'}
+        emptyMessage={t.noResults}
       />
     </SafeAreaView>
   );

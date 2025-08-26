@@ -21,7 +21,6 @@ interface RadioListProps {
   onRefresh?: () => void;
   refreshing?: boolean;
   searchEnabled?: boolean;
-  onSearch?: (query: string) => void;
   emptyMessage?: string;
 }
 
@@ -31,14 +30,13 @@ export const RadioList: React.FC<RadioListProps> = ({
   onRefresh,
   refreshing = false,
   searchEnabled = true,
-  onSearch,
   emptyMessage,
 }) => {
   const { playStation } = useAudio();
   const { t } = useLanguage();
   const { recentlyPlayed } = useAudio();
   const [searchQuery, setSearchQuery] = useState('');
-  const searchDebounce = useRef<any>(null);
+  const [filteredStations, setFilteredStations] = useState<RadioStation[]>(stations);
   const playTimeout = useRef<any>(null);
   const lastPlayStation = useRef<string>('');
 
@@ -72,72 +70,44 @@ export const RadioList: React.FC<RadioListProps> = ({
     }
   }, [playStation, t]);
 
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setFilteredStations(stations);
+      return;
+    }
+    const normQuery = searchQuery
+      .toLowerCase()
+      .replace(/ı/g, 'i')
+      .replace(/ü/g, 'u')
+      .replace(/ö/g, 'o')
+      .replace(/ş/g, 's')
+      .replace(/ç/g, 'c')
+      .replace(/ğ/g, 'g');
+    const filtered = stations.filter(station => {
+      const fields = [
+        station.name,
+        station.tags,
+        station.country,
+        station.codec,
+        station.bitrate?.toString() || '',
+        station.homepage || '',
+        station.state || '',
+        station.language || '',
+      ];
+      return fields.some(field => (field || '').toLowerCase().includes(normQuery));
+    });
+    setFilteredStations(filtered);
+  }, [searchQuery, stations]);
+
   const handleSearch = (query: string) => {
     setSearchQuery(query);
-    // debounce parent search to avoid re-rendering list on every keystroke
-    if (searchDebounce.current) clearTimeout(searchDebounce.current);
-    searchDebounce.current = setTimeout(() => {
-      onSearch?.(query);
-    }, 300);
   };
-
-  useEffect(() => {
-    return () => {
-      if (searchDebounce.current) clearTimeout(searchDebounce.current);
-    };
-  }, []);
 
   const renderStation = ({ item }: { item: RadioStation }) => (
     <RadioStationCard 
       station={item} 
       onPress={handleStationPress}
     />
-  );
-
-  const renderHeader = () => (
-    <View>
-      {searchEnabled && (
-        <View className="px-4 py-3">
-          <View className="flex-row items-center bg-gray-100 dark:bg-gray-700 rounded-xl px-4 py-3">
-            <Ionicons name="search" size={20} color="#6B7280" />
-            <TextInput
-              className="flex-1 ml-3 text-gray-900 dark:text-white"
-              placeholder={t.search}
-              placeholderTextColor="#6B7280"
-              value={searchQuery}
-              onChangeText={handleSearch}
-              autoCapitalize="none"
-              autoCorrect={false}
-              blurOnSubmit={false}
-              returnKeyType="search"
-              onSubmitEditing={() => onSearch?.(searchQuery)}
-            />
-            {searchQuery.length > 0 && (
-              <TouchableOpacity onPress={() => handleSearch('')}>
-                <Ionicons name="close-circle" size={20} color="#6B7280" />
-              </TouchableOpacity>
-            )}
-          </View>
-          {/* Recently played horizontal list under search */}
-          {recentlyPlayed && recentlyPlayed.length > 0 && (
-            <View className="mt-3">
-              <Text className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-3">Son dinlenenler</Text>
-              <FlatList
-                data={recentlyPlayed}
-                horizontal
-                keyExtractor={(item) => item.stationuuid}
-                showsHorizontalScrollIndicator={false}
-                renderItem={({ item }) => (
-                  <View className="mr-2 px-1" style={{ width: 140 }}>
-                    <RadioStationCard station={item} onPress={() => { /* optional play */ }} small />
-                  </View>
-                )}
-              />
-            </View>
-          )}
-        </View>
-      )}
-    </View>
   );
 
   const renderEmpty = () => (
@@ -175,15 +145,43 @@ export const RadioList: React.FC<RadioListProps> = ({
 
   return (
     <View className="flex-1 bg-gray-50 dark:bg-gray-900">
+      {/* Sabit arama çubuğu */}
+      {searchEnabled && (
+        <View className="px-4 py-3" style={{ zIndex: 10, backgroundColor: '#f5f5f5' }}>
+          <View className="flex-row items-center bg-gray-100 dark:bg-gray-700 rounded-xl px-4 py-3">
+            <Ionicons name="search" size={20} color="#6B7280" />
+            <TextInput
+              className="flex-1 ml-3 text-gray-900 dark:text-white"
+              placeholder={t.search}
+              placeholderTextColor="#6B7280"
+              value={searchQuery}
+              onChangeText={handleSearch}
+              autoCapitalize="none"
+              autoCorrect={false}
+              blurOnSubmit={false}
+              returnKeyType="search"
+              onBlur={e => {
+                // Odak kaybolursa tekrar odakla
+                e.target?.focus?.();
+              }}
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity onPress={() => handleSearch('')}>
+                <Ionicons name="close-circle" size={20} color="#6B7280" />
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+      )}
+      {/* FlatList altında */}
       <FlatList
-        data={stations}
+        data={filteredStations}
         renderItem={renderStation}
         keyExtractor={(item) => item.stationuuid}
-        ListHeaderComponent={renderHeader}
         ListEmptyComponent={renderEmpty}
         ListFooterComponent={renderFooter}
         contentContainerStyle={
-          stations.length === 0 ? { flex: 1 } : { paddingBottom: 100 }
+          filteredStations.length === 0 ? { flex: 1 } : { paddingBottom: 100 }
         }
         keyboardShouldPersistTaps="always"
         refreshControl={
@@ -191,7 +189,7 @@ export const RadioList: React.FC<RadioListProps> = ({
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              colors={['#F97316']}
+              colors={["#F97316"]}
               tintColor="#F97316"
             />
           ) : undefined
