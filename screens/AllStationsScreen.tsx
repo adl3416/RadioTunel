@@ -244,16 +244,14 @@ export const AllStationsScreen: React.FC<AllStationsScreenProps> = ({ onMenuPres
           </View>
 
           {/* Favoriler butonu sağ altta */}
-          <View className="absolute bottom-4 right-4 flex-row items-center">
+          <View className="absolute bottom-2 right-2 flex-row items-center">
             <TouchableOpacity 
               onPress={onNavigateToFavorites}
-              className="p-2 bg-white bg-opacity-20 rounded-full flex-row items-center"
+              className="w-10 h-10 bg-white bg-opacity-20 rounded-full flex-row items-center justify-center"
+              style={{ position: 'relative' }}
             >
-              <Ionicons name="heart" size={20} color="#FCD34D" />
-              <Text className="text-white text-sm ml-1 font-medium">Favoriler</Text>
-               <View className="ml-2 bg-white rounded-full px-2 py-1">
-              <Text className="text-orange-600 text-xs font-semibold">{favorites?.length ?? 0}</Text>
-            </View>
+              <Ionicons name="heart" size={18} color="#FCD34D" />
+              <Text className="text-orange-600 text-xs font-semibold ml-1">{favorites?.length ?? 0}</Text>
             </TouchableOpacity>
             {/* favorites count badge */}
            
