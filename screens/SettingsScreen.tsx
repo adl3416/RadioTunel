@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigation } from '@react-navigation/native';
 import { 
   View, 
   Text, 
@@ -10,18 +11,17 @@ import {
   Linking
 } from 'react-native';
 import { useLanguage } from '../contexts/LanguageContext';
-import { useAudio } from '../contexts/AudioContext';
 import { StorageService } from '../services/storageService';
 import { Ionicons } from '@expo/vector-icons';
-import Slider from '@react-native-community/slider';
 
 interface SettingsScreenProps {
   onMenuPress: () => void;
+  onClose: () => void;
 }
 
-export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onMenuPress }) => {
+export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onMenuPress, onClose }) => {
+  const navigation = useNavigation();
   const { t, language, setLanguage } = useLanguage();
-  const { playbackState, setVolume } = useAudio();
   const [autoPlay, setAutoPlay] = useState(false);
 
   // Load settings on component mount
@@ -75,16 +75,9 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onMenuPress }) =
       title: 'Audio',
       items: [
         {
-          id: 'volume',
-          title: t.volume,
-          type: 'slider',
-          value: playbackState.volume,
-          onValueChange: setVolume,
-        },
-        {
           id: 'autoplay',
-          title: t.autoPlay,
-          subtitle: 'Automatically start playing when selecting a station',
+          title: 'Açılışta Otomatik Çal',
+          subtitle: 'Uygulama açıldığında otomatik olarak radyo çalmaya başlar',
           type: 'switch',
           value: autoPlay,
           onValueChange: handleAutoPlayToggle,
@@ -145,30 +138,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onMenuPress }) =
 
   const renderSettingItem = (item: any) => {
     switch (item.type) {
-      case 'slider':
-        return (
-          <View key={item.id} className="bg-white dark:bg-gray-800 rounded-xl p-4 mb-3">
-            <Text className="text-gray-900 dark:text-white font-semibold mb-3">
-              {item.title}
-            </Text>
-            <View className="flex-row items-center">
-              <Ionicons name="volume-low" size={16} color="#6B7280" />
-              <Slider
-                style={{ flex: 1, marginHorizontal: 16 }}
-                minimumValue={0}
-                maximumValue={1}
-                value={item.value}
-                onValueChange={item.onValueChange}
-                minimumTrackTintColor="#F97316"
-                maximumTrackTintColor="#D1D5DB"
-              />
-              <Ionicons name="volume-high" size={16} color="#6B7280" />
-            </View>
-            <Text className="text-gray-500 dark:text-gray-400 text-sm text-center mt-2">
-              {Math.round(item.value * 100)}%
-            </Text>
-          </View>
-        );
+  // Removed slider case
 
       case 'switch':
         return (
@@ -325,9 +295,16 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onMenuPress }) =
     <SafeAreaView className="flex-1 bg-gray-50 dark:bg-gray-900">
       {/* Header */}
       <View className="flex-row items-center justify-between px-4 py-3 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-        <TouchableOpacity onPress={onMenuPress} className="p-2">
-          <Ionicons name="menu" size={24} color="#6B7280" />
-        </TouchableOpacity>
+        <View style={{ marginTop: 40, marginBottom: -24 }}>
+          <TouchableOpacity
+            onPress={onClose}
+            className="p-3 bg-white rounded-full shadow-md"
+            style={{ elevation: 4 }}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="close" size={24} color="#F97316" />
+          </TouchableOpacity>
+        </View>
         <Text className="text-xl font-bold text-gray-900 dark:text-white">
           {t.settings}
         </Text>

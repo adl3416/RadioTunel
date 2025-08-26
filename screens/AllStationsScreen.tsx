@@ -184,7 +184,7 @@ export const AllStationsScreen: React.FC<AllStationsScreenProps> = ({ onMenuPres
     <SafeAreaView className="flex-1 bg-gray-50 dark:bg-gray-900">
   {/* Header - Ekranın 1/4'ü kadar yükseklik */}
   <View className="bg-orange-500" style={{ height: '25%' }}>
-        <View className="flex-1 justify-center items-center px-4 pt-8">
+  <View className="flex-1 justify-start items-center px-4 pt-4">
           {/* Menu butonu sol üstte */}
           <View className="absolute top-8 left-4">
             <TouchableOpacity onPress={onMenuPress} className="p-3 bg-white rounded-full shadow-md">
@@ -215,30 +215,31 @@ export const AllStationsScreen: React.FC<AllStationsScreenProps> = ({ onMenuPres
           </View>
 
           {/* Radyo Tüneli başlığı */}
-          <Text className="text-3xl font-bold text-white text-center mb-2">
-            Radyo Tüneli
-          </Text>
-          {/* Search bar header altına taşındı */}
-          <View className="w-full items-center mb-2">
-            <View className="flex-row items-center bg-gray-100 dark:bg-gray-700 rounded-xl px-2 py-1" style={{ minHeight: 20, maxWidth: 220 }}>
-              <Ionicons name="search" size={14} color="#6B7280" />
-              <TextInput
-                className="flex-1 ml-1 text-gray-900 dark:text-white"
-                placeholder={t.search}
-                placeholderTextColor="#6B7280"
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                autoCapitalize="none"
-                autoCorrect={false}
-                blurOnSubmit={false}
-                returnKeyType="search"
-                style={{ fontSize: 12, minHeight: 18, maxWidth: 180 }}
-              />
-              {searchQuery && searchQuery.length > 0 && (
-                <TouchableOpacity onPress={() => setSearchQuery('')}>
-                  <Ionicons name="close-circle" size={14} color="#6B7280" />
-                </TouchableOpacity>
-              )}
+          <View className="w-full flex-row items-center justify-between mb-2">
+            <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+              <Text className="text-3xl font-bold text-white text-center" style={{ marginBottom: 2, marginTop: 26 }}>
+                Radyo Tüneli
+              </Text>
+              <View className="flex-row items-center bg-gray-100 dark:bg-gray-700 rounded-xl px-2 py-0" style={{ minHeight: 18, maxWidth: 380, marginTop: 28, alignSelf: 'center' }}>
+                <Ionicons name="search" size={13} color="#6B7280" />
+                <TextInput
+                  className="flex-1 ml-1 text-gray-900 dark:text-white"
+                  placeholder={t.search}
+                  placeholderTextColor="#6B7280"
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  blurOnSubmit={false}
+                  returnKeyType="search"
+                  style={{ fontSize: 11, minHeight: 10, maxWidth: 260 }}
+                />
+                {searchQuery && searchQuery.length > 0 && (
+                  <TouchableOpacity onPress={() => setSearchQuery('')}>
+                    <Ionicons name="close-circle" size={13} color="#6B7280" />
+                  </TouchableOpacity>
+                )}
+              </View>
             </View>
           </View>
 
@@ -246,15 +247,16 @@ export const AllStationsScreen: React.FC<AllStationsScreenProps> = ({ onMenuPres
           <View className="absolute bottom-4 right-4 flex-row items-center">
             <TouchableOpacity 
               onPress={onNavigateToFavorites}
-              className="p-4 bg-white bg-opacity-20 rounded-full flex-row items-center"
+              className="p-2 bg-white bg-opacity-20 rounded-full flex-row items-center"
             >
               <Ionicons name="heart" size={20} color="#FCD34D" />
-              <Text className="text-white text-sm ml-2 font-medium">Favoriler</Text>
-            </TouchableOpacity>
-            {/* favorites count badge */}
-            <View className="ml-2 bg-white rounded-full px-2 py-1">
+              <Text className="text-white text-sm ml-1 font-medium">Favoriler</Text>
+               <View className="ml-2 bg-white rounded-full px-2 py-1">
               <Text className="text-orange-600 text-xs font-semibold">{favorites?.length ?? 0}</Text>
             </View>
+            </TouchableOpacity>
+            {/* favorites count badge */}
+           
           </View>
         </View>
       </View>

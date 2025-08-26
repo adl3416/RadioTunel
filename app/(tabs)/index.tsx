@@ -35,7 +35,7 @@ export default function TabOneScreen() {
       case 'sleepTimer':
         return <SleepTimerScreen onMenuPress={handleMenuPress} />;
       case 'settings':
-        return <SettingsScreen onMenuPress={handleMenuPress} />;
+        return <SettingsScreen onMenuPress={handleMenuPress} onClose={() => handleNavigate('allStations')} />;
       case 'allStations':
       default:
         return <AllStationsScreen 
