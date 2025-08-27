@@ -26,32 +26,25 @@ export const FavoritesScreen: React.FC<FavoritesScreenProps> = ({ onMenuPress, o
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50 dark:bg-gray-900">
+    <SafeAreaView className="flex-1 bg-orange-50 dark:bg-orange-900">
       {/* Header - Ekranın 1/4'ü kadar yükseklik */}
-      <View className="bg-gradient-to-b from-orange-400 to-orange-600" style={{ height: '25%' }}>
-        <View className="flex-1 justify-center items-center px-4 pt-8">
+  <View style={{ height: '16%', backgroundColor: '#F97316', borderBottomLeftRadius: 32, borderBottomRightRadius: 32 }}>
+        <View className="flex-1 justify-center items-center px-4 pt-2">
           {/* Geri butonu sol üstte */}
-          <View className="absolute top-8 left-4">
-            <TouchableOpacity onPress={onGoBack} className="p-3 bg-white bg-opacity-20 rounded-full">
-              <Ionicons name="arrow-back" size={24} color="white" />
+          <View className="absolute top-8 left-4 z-10">
+            <TouchableOpacity onPress={onGoBack} className="p-3 bg-white bg-opacity-30 rounded-full">
+              <Ionicons name="arrow-back" size={24} color="#F97316" />
             </TouchableOpacity>
           </View>
-          
-          {/* Menu butonu */}
-          <View className="absolute top-8 right-4">
-            <TouchableOpacity onPress={onMenuPress} className="p-3 bg-white bg-opacity-20 rounded-full">
-              <Ionicons name="menu" size={24} color="white" />
-            </TouchableOpacity>
-          </View>
-          
+
           {/* Favoriler başlığı */}
-          <Text className="text-3xl font-bold text-white text-center mb-4">
+          <Text className="text-3xl font-bold text-white text-center mb-4" style={{ marginTop: 16 }}>
             Favori Radyolar
           </Text>
-          
+
           {/* Favori sayısı */}
-          <View className="bg-white bg-opacity-20 rounded-full px-4 py-2">
-            <Text className="text-white text-sm font-medium">
+          <View className="bg-white bg-opacity-30 rounded-full px-4 py-2">
+            <Text className="text-orange-600 text-sm font-medium">
               {favorites.length} favori radyo
             </Text>
           </View>

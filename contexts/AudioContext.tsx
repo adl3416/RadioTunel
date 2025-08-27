@@ -155,41 +155,36 @@ export const AudioProvider: React.FC<AudioProviderProps> = ({ children }) => {
 
   const playStation = async (station: RadioStation): Promise<void> => {
     try {
-      console.log('AudioContext: playStation called', { 
-        stationName: station.name,
-        currentlyPlaying: state.playbackState.isPlaying,
-        isLoading: state.playbackState.isLoading 
-      });
-      
-      // Prevent multiple concurrent play requests
-      if (state.playbackState.isLoading) {
-        console.log('AudioContext: Already loading, ignoring play request');
-        return;
-      }
-      
-      // Sadece loading state ve currentStation'ı güncelle
-      dispatch({ 
-        type: 'SET_PLAYBACK_STATE', 
-        payload: { 
-          isLoading: true, 
+      // Hızlı ve senkronize state güncellemesi
+      dispatch({
+        type: 'SET_PLAYBACK_STATE',
+        payload: {
+          isLoading: true,
           isPlaying: false,
-          currentStation: station 
-        } 
+          currentStation: station,
+          position: 0,
+          duration: 0,
+        },
       });
 
-      // Stop current playback
+      // Mevcut sesi durdur ve kaldır
       if (state.sound) {
-        await state.sound.unloadAsync();
+        try {
+          await state.sound.stopAsync();
+        } catch (e) {}
+        try {
+          await state.sound.unloadAsync();
+        } catch (e) {}
         dispatch({ type: 'SET_SOUND', payload: null });
       }
 
-      // Click station for statistics
+      // İstatistik için tıklama
       RadioBrowserService.clickStation(station.stationuuid);
 
-      // Create new sound with high quality settings
+      // Yeni sesi başlat
       const { sound } = await Audio.Sound.createAsync(
         { uri: station.url_resolved },
-        { 
+        {
           shouldPlay: true,
           rate: 1.0,
           shouldCorrectPitch: true,
@@ -197,47 +192,23 @@ export const AudioProvider: React.FC<AudioProviderProps> = ({ children }) => {
           isMuted: false,
           isLooping: false,
           progressUpdateIntervalMillis: 500,
-          positionMillis: 0
-        },
-        async (status) => {
-          console.log('Audio status update:', { isLoaded: status.isLoaded });
-          
-          if (status.isLoaded) {
-            // Set volume after sound is loaded
-            try {
-              await sound.setVolumeAsync(state.playbackState.volume);
-            } catch (volumeError) {
-              console.warn('Could not set volume immediately:', volumeError);
-            }
-            
-            // Immediately update playing state when loaded
-            dispatch({
-              type: 'SET_PLAYBACK_STATE',
-              payload: {
-                isPlaying: status.isPlaying || false,
-                isLoading: false,
-                position: status.positionMillis || 0,
-                duration: status.durationMillis || 0,
-              },
-            });
-          } else if ('error' in status && status.error) {
-            console.error('Audio playback error:', status.error);
-            dispatch({
-              type: 'SET_PLAYBACK_STATE',
-              payload: { isLoading: false, isPlaying: false },
-            });
-          }
+          positionMillis: 0,
         }
       );
 
+      // Ses hemen başlatıldı, state güncelle
+      dispatch({
+        type: 'SET_PLAYBACK_STATE',
+        payload: {
+          isPlaying: true,
+          isLoading: false,
+          position: 0,
+          duration: 0,
+        },
+      });
       dispatch({ type: 'SET_SOUND', payload: sound });
-    // update recently played
-    dispatch({ type: 'ADD_RECENT', payload: station });
-      
-  // Artık optimistic update yok, status callback ile state güncellenecek
-  console.log('AudioContext: Sound created, state güncellemesi status callback ile yapılacak');
+      dispatch({ type: 'ADD_RECENT', payload: station });
     } catch (error) {
-      console.error('Error playing station:', error);
       dispatch({
         type: 'SET_PLAYBACK_STATE',
         payload: { isLoading: false, isPlaying: false },
@@ -247,59 +218,20 @@ export const AudioProvider: React.FC<AudioProviderProps> = ({ children }) => {
 
   const pausePlayback = async (): Promise<void> => {
     try {
-      console.log('AudioContext: pausePlayback called', { 
-        hasSound: !!state.sound, 
-        isPlaying: state.playbackState.isPlaying,
-        isLoading: state.playbackState.isLoading 
+      if (state.sound) {
+        await state.sound.pauseAsync();
+        await state.sound.unloadAsync();
+        dispatch({ type: 'SET_SOUND', payload: null });
+      }
+      dispatch({
+        type: 'SET_PLAYBACK_STATE',
+        payload: { isPlaying: false, isLoading: false },
       });
-      
-  // Sadece loading state'i göster
-  dispatch({ type: 'SET_PLAYBACK_STATE', payload: { isLoading: true } });
-      
-      if (state.sound) {
-        try {
-          // Get current status to check if sound is loaded
-          const status = await state.sound.getStatusAsync();
-          console.log('AudioContext: Sound status before pause:', status);
-          
-          if (status.isLoaded) {
-            await state.sound.pauseAsync();
-            console.log('AudioContext: Playback paused successfully');
-          } else {
-            console.warn('AudioContext: Sound not loaded, stopping instead');
-            await state.sound.unloadAsync();
-            dispatch({ type: 'SET_SOUND', payload: null });
-          }
-        } catch (soundError) {
-          console.error('AudioContext: Error with sound operation, unloading:', soundError);
-          try {
-            await state.sound.unloadAsync();
-          } catch (unloadError) {
-            console.error('AudioContext: Error unloading sound:', unloadError);
-          }
-          dispatch({ type: 'SET_SOUND', payload: null });
-        }
-      } else {
-        console.warn('AudioContext: No sound object to pause');
-      }
-      
-  // Ses gerçekten durunca state'i güncelle
-  dispatch({ type: 'SET_PLAYBACK_STATE', payload: { isPlaying: false, isLoading: false } });
-      
     } catch (error) {
-      console.error('AudioContext: Error pausing playback:', error);
-      // Force paused state regardless of error
-      dispatch({ type: 'SET_PLAYBACK_STATE', payload: { isPlaying: false, isLoading: false } });
-      
-      // Try to clean up sound object if there was an error
-      if (state.sound) {
-        try {
-          await state.sound.unloadAsync();
-          dispatch({ type: 'SET_SOUND', payload: null });
-        } catch (cleanupError) {
-          console.error('AudioContext: Error during cleanup:', cleanupError);
-        }
-      }
+      dispatch({
+        type: 'SET_PLAYBACK_STATE',
+        payload: { isPlaying: false, isLoading: false },
+      });
     }
   };
 

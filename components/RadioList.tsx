@@ -1,14 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { 
-  View, 
-  Text, 
-  TextInput, 
-  FlatList, 
-  TouchableOpacity, 
-  RefreshControl,
-  ActivityIndicator,
-  Alert
-} from 'react-native';
+import { View, Text, TextInput, FlatList, TouchableOpacity, RefreshControl, ActivityIndicator, Alert, Image } from 'react-native';
 import { RadioStation } from '../types/radio';
 import { RadioStationCard } from './RadioStationCard';
 import { useAudio } from '../contexts/AudioContext';
@@ -21,7 +12,6 @@ interface RadioListProps {
   onRefresh?: () => void;
   refreshing?: boolean;
   searchEnabled?: boolean;
-  onSearch?: (query: string) => void;
   emptyMessage?: string;
 }
 
@@ -31,113 +21,61 @@ export const RadioList: React.FC<RadioListProps> = ({
   onRefresh,
   refreshing = false,
   searchEnabled = true,
-  onSearch,
   emptyMessage,
 }) => {
-  const { playStation } = useAudio();
+  const { playStation, recentlyPlayed } = useAudio();
   const { t } = useLanguage();
-  const { recentlyPlayed } = useAudio();
   const [searchQuery, setSearchQuery] = useState('');
-  const searchDebounce = useRef<any>(null);
+  const [filteredStations, setFilteredStations] = useState<RadioStation[]>(stations);
   const playTimeout = useRef<any>(null);
   const lastPlayStation = useRef<string>('');
 
   const handleStationPress = useCallback(async (station: RadioStation) => {
-    console.log('RadioList: Station press initiated', station.name);
-    
-    // Eğer aynı istasyon çok hızlı tekrar seçilirse engelle
-    if (lastPlayStation.current === station.stationuuid) {
-      console.log('RadioList: Duplicate station press ignored', station.name);
-      return;
-    }
-    
-    // Önceki timeout'u temizle
-    if (playTimeout.current) {
-      clearTimeout(playTimeout.current);
-    }
-    
+    if (lastPlayStation.current === station.stationuuid) return;
+    if (playTimeout.current) clearTimeout(playTimeout.current);
     lastPlayStation.current = station.stationuuid;
-    
     try {
-      console.log('RadioList: Playing station', station.name);
       await playStation(station);
     } catch (error) {
-      console.error('RadioList: Error playing station:', error);
       Alert.alert(t.error, t.playbackError);
     } finally {
-      // 1 saniye sonra aynı istasyonu tekrar seçme yasağını kaldır
-      playTimeout.current = setTimeout(() => {
-        lastPlayStation.current = '';
-      }, 1000);
+      playTimeout.current = setTimeout(() => { lastPlayStation.current = ''; }, 1000);
     }
   }, [playStation, t]);
 
-  const handleSearch = (query: string) => {
-    setSearchQuery(query);
-    // debounce parent search to avoid re-rendering list on every keystroke
-    if (searchDebounce.current) clearTimeout(searchDebounce.current);
-    searchDebounce.current = setTimeout(() => {
-      onSearch?.(query);
-    }, 300);
-  };
-
   useEffect(() => {
-    return () => {
-      if (searchDebounce.current) clearTimeout(searchDebounce.current);
-    };
-  }, []);
+    if (!searchQuery.trim()) {
+      setFilteredStations(stations);
+      return;
+    }
+    const normQuery = searchQuery
+      .toLowerCase()
+      .replace(/ı/g, 'i')
+      .replace(/ü/g, 'u')
+      .replace(/ö/g, 'o')
+      .replace(/ş/g, 's')
+      .replace(/ç/g, 'c')
+      .replace(/ğ/g, 'g');
+    const filtered = stations.filter(station => {
+      const fields = [
+        station.name,
+        station.tags,
+        station.country,
+        station.codec,
+        station.bitrate?.toString() || '',
+        station.homepage || '',
+        station.state || '',
+        station.language || '',
+      ];
+      return fields.some(field => (field || '').toLowerCase().includes(normQuery));
+    });
+    setFilteredStations(filtered);
+  }, [searchQuery, stations]);
+
+  const handleSearch = (query: string) => setSearchQuery(query);
 
   const renderStation = ({ item }: { item: RadioStation }) => (
-    <RadioStationCard 
-      station={item} 
-      onPress={handleStationPress}
-    />
-  );
-
-  const renderHeader = () => (
-    <View>
-      {searchEnabled && (
-        <View className="px-4 py-3">
-          <View className="flex-row items-center bg-gray-100 dark:bg-gray-700 rounded-xl px-4 py-3">
-            <Ionicons name="search" size={20} color="#6B7280" />
-            <TextInput
-              className="flex-1 ml-3 text-gray-900 dark:text-white"
-              placeholder={t.search}
-              placeholderTextColor="#6B7280"
-              value={searchQuery}
-              onChangeText={handleSearch}
-              autoCapitalize="none"
-              autoCorrect={false}
-              blurOnSubmit={false}
-              returnKeyType="search"
-              onSubmitEditing={() => onSearch?.(searchQuery)}
-            />
-            {searchQuery.length > 0 && (
-              <TouchableOpacity onPress={() => handleSearch('')}>
-                <Ionicons name="close-circle" size={20} color="#6B7280" />
-              </TouchableOpacity>
-            )}
-          </View>
-          {/* Recently played horizontal list under search */}
-          {recentlyPlayed && recentlyPlayed.length > 0 && (
-            <View className="mt-3">
-              <Text className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-3">Son dinlenenler</Text>
-              <FlatList
-                data={recentlyPlayed}
-                horizontal
-                keyExtractor={(item) => item.stationuuid}
-                showsHorizontalScrollIndicator={false}
-                renderItem={({ item }) => (
-                  <View className="mr-2 px-1" style={{ width: 140 }}>
-                    <RadioStationCard station={item} onPress={() => { /* optional play */ }} small />
-                  </View>
-                )}
-              />
-            </View>
-          )}
-        </View>
-      )}
-    </View>
+    <RadioStationCard station={item} onPress={handleStationPress} />
   );
 
   const renderEmpty = () => (
@@ -165,7 +103,6 @@ export const RadioList: React.FC<RadioListProps> = ({
 
   const renderFooter = () => {
     if (!loading || stations.length === 0) return null;
-    
     return (
       <View className="py-4">
         <ActivityIndicator size="small" color="#F97316" />
@@ -174,41 +111,55 @@ export const RadioList: React.FC<RadioListProps> = ({
   };
 
   return (
-    <View className="flex-1 bg-gray-50 dark:bg-gray-900">
+  <View className="flex-1 bg-gray-50 dark:bg-gray-900">
+      {/* Son Dinlenenler - Arama çubuğunun hemen altında */}
+      {recentlyPlayed && recentlyPlayed.length > 0 && (
+        <View className="px-4 py-3 flex-row items-center" style={{ backgroundColor: '#e5e7eb', borderRadius: 16, marginHorizontal: 8, marginTop: 2, marginBottom: 4, height: 100 }}>
+          <Text className="text-gray-700 font-semibold" style={{ fontSize: 14, marginRight: 16, minWidth: 100 }}>Son Dinlenenler</Text>
+          <FlatList
+            data={recentlyPlayed.slice(0, 10)}
+            horizontal={true}
+            keyExtractor={item => item.stationuuid}
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ flexDirection: 'row', alignItems: 'flex-start', paddingTop: 0 }}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                style={{ alignItems: 'flex-start', marginRight: 12, justifyContent: 'flex-start' }}
+                onPress={() => handleStationPress(item)}
+                activeOpacity={0.8}
+              >
+                <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center', marginBottom: 2, shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 2 }}>
+                  {item.favicon ? (
+                    <Image source={{ uri: item.favicon }} style={{ width: 34, height: 34, borderRadius: 17 }} />
+                  ) : (
+                    <View style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: '#f3f4f6', justifyContent: 'center', alignItems: 'center' }}>
+                      <Ionicons name="radio" size={18} color="#9ca3af" />
+                    </View>
+                  )}
+                </View>
+                <Text style={{ fontSize: 11, color: '#374151', textAlign: 'center', maxWidth: 48, marginTop: 2 }} numberOfLines={2}>{item.name}</Text>
+              </TouchableOpacity>
+            )}
+          />
+        </View>
+      )}
+      {/* FlatList altında */}
       <FlatList
-        data={stations}
+        data={filteredStations}
         renderItem={renderStation}
         keyExtractor={(item) => item.stationuuid}
-        ListHeaderComponent={renderHeader}
         ListEmptyComponent={renderEmpty}
         ListFooterComponent={renderFooter}
         contentContainerStyle={
-          stations.length === 0 ? { flex: 1 } : { paddingBottom: 100 }
+          loading && filteredStations.length === 0
+            ? { flex: 1, justifyContent: 'center' }
+            : undefined
         }
-        keyboardShouldPersistTaps="always"
         refreshControl={
-          onRefresh ? (
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              colors={['#F97316']}
-              tintColor="#F97316"
-            />
-          ) : undefined
+          onRefresh
+            ? <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+            : undefined
         }
-        showsVerticalScrollIndicator={false}
-        initialNumToRender={8}
-        maxToRenderPerBatch={8}
-        windowSize={5}
-        removeClippedSubviews={true}
-        updateCellsBatchingPeriod={50}
-        disableIntervalMomentum={true}
-        getItemLayout={(_, index) => ({
-          length: 88,
-          offset: 88 * index,
-          index,
-        })}
-        scrollEventThrottle={16}
       />
     </View>
   );

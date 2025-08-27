@@ -23,9 +23,11 @@ import { SleepTimerModal } from './SleepTimerModal';
 interface LargePlayerProps {
   visible: boolean;
   onClose: () => void;
+  stations: any[];
 }
 
 export const LargePlayer: React.FC<LargePlayerProps> = ({ visible, onClose }) => {
+  // Tüm istasyonlar artık prop ile geliyor
   const { 
     playbackState, 
     sleepTimer,
@@ -37,13 +39,36 @@ export const LargePlayer: React.FC<LargePlayerProps> = ({ visible, onClose }) =>
     addToFavorites,
     removeFromFavorites
   } = useAudio();
+    // Tüm istasyonları AllStationsScreen'den prop olarak almak için
+    // Eğer prop ile gelmiyorsa, bu fonksiyonlar çalışmaz. İleride prop eklenmeli.
+    // Şimdilik örnek için boş dizi ile çalıştırıyorum.
+    const stations: any[] = [];
+
+    // Bir sonraki ve önceki istasyona geçiş fonksiyonları
+    const handleNextStation = async () => {
+      if (!stations || !playbackState.currentStation) return;
+      const currentIndex = stations.findIndex((s: any) => s.stationuuid === playbackState.currentStation.stationuuid);
+      if (currentIndex >= 0 && currentIndex < stations.length - 1) {
+        await playStation(stations[currentIndex + 1]);
+      }
+    };
+
+    const handlePrevStation = async () => {
+      if (!stations || !playbackState.currentStation) return;
+      const currentIndex = stations.findIndex((s: any) => s.stationuuid === playbackState.currentStation.stationuuid);
+      if (currentIndex > 0) {
+        await playStation(stations[currentIndex - 1]);
+      }
+    };
   const { t } = useLanguage();
   const insets = useSafeAreaInsets();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const [showSleepTimer, setShowSleepTimer] = useState(false);
   // Reserve extra space above system navigation/gesture area (approx. to avoid ~8mm overlap)
   const BOTTOM_GUARD_PX = 24; // adjustable: increase if device buttons still overlap
-  const bottomGuard = (insets.bottom || 0) + BOTTOM_GUARD_PX;
+  // Küçük ekranlar için ekstra boşluk
+  const extraBottomSpace = windowHeight < 700 ? 80 : 0;
+  const bottomGuard = (insets.bottom || 0) + BOTTOM_GUARD_PX + extraBottomSpace;
   const [localVolume, setLocalVolume] = useState<number>(playbackState.volume ?? 0.8);
   const [isDragging, setIsDragging] = useState(false);
   const [isMuted, setIsMuted] = useState<boolean>(false);
@@ -145,6 +170,22 @@ export const LargePlayer: React.FC<LargePlayerProps> = ({ visible, onClose }) =>
 
   // store last non-zero volume so we can restore after unmute
   const handleToggleMute = async () => {
+  // Bir sonraki ve önceki istasyona geçiş fonksiyonları
+  const handleNextStation = async () => {
+    if (!stations || !playbackState.currentStation) return;
+    const currentIndex = stations.findIndex(s => s.stationuuid === playbackState.currentStation.stationuuid);
+    if (currentIndex >= 0 && currentIndex < stations.length - 1) {
+      await playStation(stations[currentIndex + 1]);
+    }
+  };
+
+  const handlePrevStation = async () => {
+    if (!stations || !playbackState.currentStation) return;
+    const currentIndex = stations.findIndex(s => s.stationuuid === playbackState.currentStation.stationuuid);
+    if (currentIndex > 0) {
+      await playStation(stations[currentIndex - 1]);
+    }
+  };
     try {
       if (isMuted) {
         const restore = lastVolumeRef.current > 0 ? lastVolumeRef.current : 0.8;
@@ -183,7 +224,7 @@ export const LargePlayer: React.FC<LargePlayerProps> = ({ visible, onClose }) =>
   // responsive sizes
   const imageSize = Math.min(Math.max(windowWidth * 0.62, 160), 320);
   const playSize = Math.min(Math.max(windowWidth * 0.28, 96), 180);
-  const sideBtnSize = Math.round(playSize * 0.66);
+  const sideBtnSize = Math.round(playSize * 0.66)
   const titleFontSize = Math.min(Math.max(windowWidth * 0.07, 18), 32);
 
   return (
@@ -217,9 +258,11 @@ export const LargePlayer: React.FC<LargePlayerProps> = ({ visible, onClose }) =>
           </View>
         </View>
 
+
   {/* Content wrapper - scrollable so very small screens can still access controls */}
   <ScrollView scrollEnabled={!isDragging} contentContainerStyle={{ flexGrow: 1, paddingBottom: 28 + bottomGuard }}>
-        {playbackState.currentStation ? (
+  {/* Küçük ekranlarda alt bar ile play butonu arasında daha fazla boşluk */}
+  {playbackState.currentStation ? (
           <>
             {/* Radio Station Info - Header altında */}
             <View className="items-center px-6 py-4">
@@ -313,10 +356,7 @@ export const LargePlayer: React.FC<LargePlayerProps> = ({ visible, onClose }) =>
               <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: Math.min(48, Math.round(windowHeight * 0.06)) }}>
                 {/* Previous/Geri */}
                 <TouchableOpacity 
-                  onPress={() => {
-                    // Önceki radyo istasyonuna geçiş
-                    console.log('Previous station');
-                  }}
+                  onPress={handlePrevStation}
                   activeOpacity={0.6}
                   style={{ width: sideBtnSize, height: sideBtnSize, alignItems: 'center', justifyContent: 'center', backgroundColor: '#f3f4f6', borderRadius: sideBtnSize / 2, marginRight: Math.max(16, Math.round(windowWidth * 0.08)) }}
                 >
@@ -356,10 +396,7 @@ export const LargePlayer: React.FC<LargePlayerProps> = ({ visible, onClose }) =>
 
                 {/* Next/İleri */}
                 <TouchableOpacity 
-                  onPress={() => {
-                    // Sonraki radyo istasyonuna geçiş
-                    console.log('Next station');
-                  }}
+                  onPress={handleNextStation}
                   activeOpacity={0.6}
                   style={{ width: sideBtnSize, height: sideBtnSize, alignItems: 'center', justifyContent: 'center', backgroundColor: '#f3f4f6', borderRadius: sideBtnSize / 2, marginLeft: Math.max(16, Math.round(windowWidth * 0.08)) }}
                 >
@@ -394,56 +431,58 @@ export const LargePlayer: React.FC<LargePlayerProps> = ({ visible, onClose }) =>
 
       {/* Bottom Icon Bar - fixed controls (shifted above safe area) */}
   <View className="absolute left-0 right-0 px-6" style={{ bottom: bottomGuard - 8 }}>
-        <View className="bg-white rounded-2xl shadow-lg px-4 py-3 flex-row items-center justify-between">
-          <View className="flex-row items-center space-x-3">
-            <TouchableOpacity 
-              onPress={handleStop}
-              className="w-12 h-12 items-center justify-center bg-gray-100 rounded-full"
-              activeOpacity={0.6}
-            >
-              <Ionicons name="stop" size={20} color="#374151" />
-            </TouchableOpacity>
+    <View className="bg-white rounded-2xl shadow-lg px-4 py-6 flex-row items-center justify-center">
+      <View className="flex-row items-center space-x-4">
+        <TouchableOpacity 
+          onPress={handleStop}
+          className="w-14 h-14 items-center justify-center bg-gray-100 rounded-full"
+          activeOpacity={0.6}
+          style={{ marginHorizontal: 8 }}
+        >
+          <Ionicons name="stop" size={26} color="#374151" />
+        </TouchableOpacity>
 
-            <TouchableOpacity 
-              onPress={() => setShowSleepTimer(true)}
-              className="w-12 h-12 items-center justify-center bg-gray-100 rounded-full"
-              activeOpacity={0.6}
-            >
-              <Ionicons name="moon" size={20} color={sleepTimer.isActive ? '#F97316' : '#374151'} />
-            </TouchableOpacity>
+        <TouchableOpacity 
+          onPress={() => setShowSleepTimer(true)}
+          className="w-14 h-14 items-center justify-center bg-gray-100 rounded-full"
+          activeOpacity={0.6}
+          style={{ marginHorizontal: 8 }}
+        >
+          <Ionicons name="moon" size={26} color={sleepTimer.isActive ? '#F97316' : '#374151'} />
+        </TouchableOpacity>
 
-            <TouchableOpacity
-              onPress={handleFavoritePress}
-              className="w-12 h-12 items-center justify-center bg-gray-100 rounded-full"
-              activeOpacity={0.6}
-            >
-              <Ionicons
-                name={playbackState.currentStation && isFavorite(playbackState.currentStation.stationuuid) ? 'heart' : 'heart-outline'}
-                size={20}
-                color={playbackState.currentStation && isFavorite(playbackState.currentStation.stationuuid) ? '#F97316' : '#374151'}
-              />
-            </TouchableOpacity>
-          </View>
+        <TouchableOpacity
+          onPress={handleFavoritePress}
+          className="w-14 h-14 items-center justify-center bg-gray-100 rounded-full"
+          activeOpacity={0.6}
+          style={{ marginHorizontal: 8 }}
+        >
+          <Ionicons
+            name={playbackState.currentStation && isFavorite(playbackState.currentStation.stationuuid) ? 'heart' : 'heart-outline'}
+            size={26}
+            color={playbackState.currentStation && isFavorite(playbackState.currentStation.stationuuid) ? '#F97316' : '#374151'}
+          />
+        </TouchableOpacity>
 
-          {/* Volume quick +/- and share on right side */}
-          <View className="flex-row items-center space-x-3">
-            <TouchableOpacity
-              onPress={handleToggleMute}
-              className="w-10 h-10 items-center justify-center bg-gray-100 rounded-full"
-              activeOpacity={0.6}
-            >
-              <Ionicons name={isMuted ? 'volume-mute' : 'volume-high'} size={18} color="#374151" />
-            </TouchableOpacity>
+        <TouchableOpacity
+          onPress={handleToggleMute}
+          className="w-14 h-14 items-center justify-center bg-gray-100 rounded-full"
+          activeOpacity={0.6}
+          style={{ marginHorizontal: 8 }}
+        >
+          <Ionicons name={isMuted ? 'volume-mute' : 'volume-high'} size={24} color="#374151" />
+        </TouchableOpacity>
 
-            <TouchableOpacity 
-              onPress={handleShare}
-              className="w-10 h-10 items-center justify-center bg-gray-100 rounded-full"
-              activeOpacity={0.6}
-            >
-              <Ionicons name="share" size={18} color="#374151" />
-            </TouchableOpacity>
-          </View>
-        </View>
+        <TouchableOpacity 
+          onPress={handleShare}
+          className="w-14 h-14 items-center justify-center bg-gray-100 rounded-full"
+          activeOpacity={0.6}
+          style={{ marginHorizontal: 8 }}
+        >
+          <Ionicons name="share" size={24} color="#374151" />
+        </TouchableOpacity>
+      </View>
+    </View>
       </View>
 
       <SleepTimerModal 
